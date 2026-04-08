@@ -3,72 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PI WASM Agent + Linux</title>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <title>PI Agent + JSLinux</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
-            --bg: #0d1117;
-            --bg2: #161b22;
-            --bg3: #21262d;
-            --border: #30363d;
-            --text: #e6edf3;
-            --text2: #8b949e;
-            --green: #3fb950;
-            --blue: #58a6ff;
-            --red: #f85149;
+            --bg: #0a0a0f;
+            --bg2: #12121a;
+            --bg3: #1a1a24;
+            --border: #2a2a36;
+            --text: #e8e8f0;
+            --text2: #8888a0;
+            --green: #00ff88;
+            --blue: #00aaff;
+            --purple: #aa55ff;
+            --orange: #ff8844;
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'SF Mono', 'Fira Code', monospace;
             background: var(--bg);
             color: var(--text);
-            height: 100dvh;
+            height: 100vh;
             overflow: hidden;
         }
         
         .app {
-            display: flex;
-            flex-direction: column;
-            height: 100dvh;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            height: 100vh;
         }
         
-        /* Header */
-        .header {
-            padding: 10px 16px;
+        /* Left: PI Agent */
+        .agent {
             background: var(--bg2);
-            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
+            flex-direction: column;
+        }
+        
+        .agent-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, var(--bg3), var(--bg2));
         }
         
         .logo {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-weight: 600;
-            font-size: 15px;
+            gap: 12px;
+            margin-bottom: 12px;
         }
         
         .logo-icon {
-            width: 24px;
-            height: 24px;
+            width: 32px;
+            height: 32px;
             background: linear-gradient(135deg, var(--green), var(--blue));
-            border-radius: 6px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--green);
         }
         
-        .status {
+        .logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            background: linear-gradient(90deg, var(--green), var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .logo-sub {
+            font-size: 11px;
+            color: var(--text2);
+            margin-left: 44px;
+        }
+        
+        .status-bar {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+        }
+        
+        .status-item {
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 12px;
             color: var(--text2);
         }
         
@@ -79,55 +102,89 @@
             background: var(--text2);
         }
         
-        .status-dot.ready { background: var(--green); }
+        .status-dot.ready { background: var(--green); box-shadow: 0 0 8px var(--green); }
         .status-dot.busy { background: var(--blue); animation: pulse 1s infinite; }
         
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         
-        /* Main Content */
-        .main {
+        /* Commands */
+        .commands {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .cmd-title {
+            font-size: 10px;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        
+        .cmd-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+        
+        .cmd-btn {
+            padding: 8px 4px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 11px;
+            cursor: pointer;
+            text-align: center;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        
+        .cmd-btn:hover {
+            border-color: var(--green);
+            color: var(--green);
+        }
+        
+        .cmd-btn.primary {
+            background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,170,255,0.1));
+            border-color: var(--green);
+        }
+        
+        /* Chat */
+        .chat {
             flex: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
         
-        /* Agent Chat */
-        .chat {
-            height: 200px;
-            min-height: 120px;
-            max-height: 300px;
-            display: flex;
-            flex-direction: column;
-            background: var(--bg2);
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .chat-messages {
+        .messages {
             flex: 1;
             overflow-y: auto;
-            padding: 10px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
         }
         
         .msg {
-            max-width: 95%;
-            padding: 6px 10px;
+            padding: 10px 12px;
             border-radius: 10px;
             font-size: 12px;
-            line-height: 1.4;
+            line-height: 1.5;
+            max-width: 95%;
         }
         
         .msg.user {
             align-self: flex-end;
-            background: linear-gradient(135deg, #1f6feb, #388bfd);
+            background: linear-gradient(135deg, rgba(0,170,255,0.3), rgba(0,255,136,0.3));
+            border: 1px solid var(--blue);
         }
         
-        .msg.assistant {
+        .msg.agent {
             align-self: flex-start;
             background: var(--bg3);
+            border: 1px solid var(--border);
         }
         
         .msg.system {
@@ -135,68 +192,124 @@
             background: transparent;
             color: var(--text2);
             font-size: 11px;
+            text-align: center;
         }
         
-        .chat-input {
-            padding: 8px 10px;
+        .msg pre {
+            background: var(--bg);
+            padding: 8px;
+            border-radius: 6px;
+            margin: 6px 0;
+            font-size: 11px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+        }
+        
+        .msg code {
+            background: var(--bg);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        
+        .input-area {
+            padding: 12px;
             border-top: 1px solid var(--border);
-            display: flex;
-            gap: 6px;
+            background: var(--bg);
         }
         
-        .chat-input input {
-            flex: 1;
+        .input-wrapper {
+            display: flex;
+            gap: 8px;
             background: var(--bg3);
             border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 6px 12px;
-            color: var(--text);
-            font-size: 13px;
-            outline: none;
+            border-radius: 8px;
+            padding: 4px;
         }
         
-        .chat-input input:focus { border-color: var(--blue); }
+        .input-wrapper:focus-within {
+            border-color: var(--green);
+            box-shadow: 0 0 10px rgba(0,255,136,0.2);
+        }
+        
+        .input-wrapper input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 12px;
+            padding: 6px 8px;
+            font-family: inherit;
+            outline: none;
+        }
         
         .send-btn {
             width: 32px;
             height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--green), #2ea043);
+            background: linear-gradient(135deg, var(--green), var(--blue));
             border: none;
-            color: #fff;
+            border-radius: 6px;
+            color: var(--bg);
             font-size: 14px;
             cursor: pointer;
+            font-weight: bold;
         }
         
-        .send-btn:disabled { opacity: 0.5; }
+        /* Right: JSLinux */
+        .linux {
+            display: flex;
+            flex-direction: column;
+            background: #000;
+        }
         
-        /* Quick Actions */
-        .actions {
-            padding: 6px 10px;
-            background: var(--bg3);
+        .linux-header {
+            padding: 12px 16px;
+            background: var(--bg2);
             border-bottom: 1px solid var(--border);
             display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
         }
         
-        .action-btn {
-            padding: 4px 8px;
-            background: var(--bg2);
+        .linux-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .linux-icon {
+            font-size: 20px;
+        }
+        
+        .linux-info {
+            font-size: 11px;
+            color: var(--text2);
+        }
+        
+        .linux-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .ctrl-btn {
+            padding: 6px 12px;
+            background: var(--bg3);
             border: 1px solid var(--border);
             border-radius: 4px;
-            color: var(--text2);
+            color: var(--text);
             font-size: 11px;
             cursor: pointer;
+            font-family: inherit;
         }
         
-        .action-btn:active { background: var(--border); color: var(--text); }
+        .ctrl-btn:hover {
+            border-color: var(--blue);
+        }
         
-        /* Terminal */
         .terminal {
             flex: 1;
-            background: #000;
             position: relative;
+            background: #000;
         }
         
         .terminal iframe {
@@ -205,126 +318,195 @@
             border: none;
         }
         
-        .loading {
+        .loading-screen {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--bg);
+            background: #000;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 20px;
             z-index: 10;
         }
         
-        .loading.hidden { display: none; }
+        .loading-screen.hidden { display: none; }
         
-        .spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid var(--border);
-            border-top-color: var(--blue);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        .boot-text {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--green);
+            white-space: pre;
+            text-shadow: 0 0 5px var(--green);
         }
         
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* Resize Handle */
-        .resize-handle {
-            height: 6px;
+        .progress-bar {
+            width: 200px;
+            height: 4px;
             background: var(--border);
-            cursor: ns-resize;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .resize-handle::after {
-            content: '';
-            width: 40px;
-            height: 3px;
-            background: var(--text2);
             border-radius: 2px;
-            opacity: 0.5;
+            overflow: hidden;
         }
         
-        /* Mobile */
-        @media (max-width: 600px) {
-            .chat { height: 150px; }
-            .header { padding: 8px 12px; }
-            .logo span { display: none; }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--green), var(--blue));
+            width: 0%;
+            animation: load 3s ease-in-out forwards;
+        }
+        
+        @keyframes load {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        
+        /* Responsive */
+        @media (max-width: 900px) {
+            .app {
+                grid-template-columns: 1fr;
+                grid-template-rows: 50% 50%;
+            }
         }
     </style>
 </head>
 <body>
     <div class="app">
-        <div class="header">
-            <div class="logo">
-                <div class="logo-icon">π</div>
-                <span>PI Agent + Linux</span>
+        <!-- PI Agent -->
+        <div class="agent">
+            <div class="agent-header">
+                <div class="logo">
+                    <div class="logo-icon">π</div>
+                    <div>
+                        <div class="logo-text">PI Agent</div>
+                    </div>
+                </div>
+                <div class="logo-sub">AI + Linux Terminal</div>
+                <div class="status-bar">
+                    <div class="status-item">
+                        <span class="status-dot busy" id="status"></span>
+                        <span id="statusText">Initializing...</span>
+                    </div>
+                    <div class="status-item">
+                        <span>⚡</span>
+                        <span id="sessionTime">0:00</span>
+                    </div>
+                </div>
             </div>
-            <div class="status">
-                <span class="status-dot busy" id="status"></span>
-                <span id="statusText">Loading...</span>
+            
+            <div class="commands">
+                <div class="cmd-title">Quick Commands</div>
+                <div class="cmd-grid">
+                    <button class="cmd-btn primary" onclick="runCmd('ls -la')">📁 ls</button>
+                    <button class="cmd-btn" onclick="runCmd('cat ')">📄 cat</button>
+                    <button class="cmd-btn" onclick="runCmd('vim ')">✏️ vim</button>
+                    <button class="cmd-btn" onclick="runCmd('gcc ')">⚙️ gcc</button>
+                    <button class="cmd-btn" onclick="runCmd('python3 ')">🐍 python</button>
+                    <button class="cmd-btn" onclick="runCmd('git ')">🔀 git</button>
+                    <button class="cmd-btn" onclick="runCmd('make')">🔨 make</button>
+                    <button class="cmd-btn" onclick="runCmd('gdb ')">🐛 gdb</button>
+                    <button class="cmd-btn" onclick="runCmd('help')">❓ help</button>
+                </div>
+            </div>
+            
+            <div class="chat">
+                <div class="messages" id="messages">
+                    <div class="msg system">Connecting to PI Agent...</div>
+                </div>
+                <div class="input-area">
+                    <div class="input-wrapper">
+                        <input type="text" id="input" placeholder="Command or question..." onkeydown="handleKey(event)">
+                        <button class="send-btn" onclick="send()">▶</button>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <div class="main">
-            <!-- Chat -->
-            <div class="chat" id="chatPanel">
-                <div class="chat-messages" id="messages">
-                    <div class="msg system">Initializing...</div>
+        <!-- JSLinux Terminal -->
+        <div class="linux">
+            <div class="linux-header">
+                <div class="linux-title">
+                    <span class="linux-icon">🐧</span>
+                    <div>
+                        <div style="font-size:13px;font-weight:600">Linux Terminal</div>
+                        <div class="linux-info" id="termInfo">Alpine Linux · x86</div>
+                    </div>
                 </div>
-                <div class="chat-input">
-                    <input type="text" id="input" placeholder="Type command or message..." onkeydown="handleKey(event)">
-                    <button class="send-btn" id="sendBtn" onclick="send()" disabled>➤</button>
+                <div class="linux-controls">
+                    <button class="ctrl-btn" onclick="resizeTerm('small')">Small</button>
+                    <button class="ctrl-btn" onclick="resizeTerm('normal')">Normal</button>
+                    <button class="ctrl-btn" onclick="resizeTerm('large')">Large</button>
+                    <button class="ctrl-btn" onclick="restartLinux()">Restart</button>
                 </div>
             </div>
-            
-            <!-- Quick Actions -->
-            <div class="actions">
-                <button class="action-btn" onclick="runCmd('help')">❓ Help</button>
-                <button class="action-btn" onclick="runCmd('ls -la')">📁 ls</button>
-                <button class="action-btn" onclick="runCmd('python3')">🐍 Python</button>
-                <button class="action-btn" onclick="runCmd('vim ')">📝 vim</button>
-                <button class="action-btn" onclick="runCmd('git status')">🔀 git</button>
-                <button class="action-btn" onclick="runCmd('apk update && apk add ')">📦 install</button>
-                <button class="action-btn" onclick="runCmd('clear')">🧹 clear</button>
-            </div>
-            
-            <!-- Terminal -->
             <div class="terminal">
-                <div class="loading" id="loading">
-                    <div class="spinner"></div>
-                    <div style="color:var(--text2);font-size:12px">Loading Alpine Linux...</div>
+                <div class="loading-screen" id="loadingScreen">
+                    <div class="boot-text" id="bootText"></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
                 </div>
-                <iframe id="webvm" src="https://webvm.io" onload="onLoad()"></iframe>
+                <iframe id="termframe" src="https://copy.sh/v86/?profile=alpine"></iframe>
             </div>
         </div>
     </div>
     
     <script>
-        let pyodide = null;
+        let startTime = Date.now();
         
-        async function init() {
-            setStatus('busy', 'Loading Python...');
+        // Boot sequence animation
+        const bootLines = [
+            'PI Agent + JSLinux v1.0',
+            '======================',
+            '',
+            'Initializing x86 emulator...',
+            'Loading Linux kernel...',
+            'Mounting filesystem...',
+            'Starting Alpine Linux...',
+            '',
+            'Ready!'
+        ];
+        
+        async function bootAnimation() {
+            const bootText = document.getElementById('bootText');
+            let text = '';
             
-            try {
-                pyodide = await loadPyodide();
-                setStatus('ready', 'Ready');
-                document.getElementById('sendBtn').disabled = false;
-                
-                clearMessages();
-                addMessage('system', '✅ Ready! Commands run in Linux terminal below. Type "help" for tips.');
-            } catch (e) {
-                setStatus('error', 'Error');
-                addMessage('system', 'Error: ' + e.message);
+            for (const line of bootLines) {
+                text += line + '\n';
+                bootText.textContent = text;
+                await sleep(200);
             }
+            
+            await sleep(1000);
+            document.getElementById('loadingScreen').classList.add('hidden');
+            setStatus('ready', 'Ready');
         }
         
-        function onLoad() {
-            document.getElementById('loading').classList.add('hidden');
+        function sleep(ms) {
+            return new Promise(r => setTimeout(r, ms));
+        }
+        
+        // Timer
+        setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const mins = Math.floor(elapsed / 60);
+            const secs = elapsed % 60;
+            document.getElementById('sessionTime').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+        }, 1000);
+        
+        // Status
+        function setStatus(s, t) {
+            document.getElementById('status').className = 'status-dot ' + s;
+            document.getElementById('statusText').textContent = t;
+        }
+        
+        // Commands
+        function runCmd(cmd) {
+            document.getElementById('input').value = cmd;
+            if (!cmd.endsWith(' ') && cmd !== 'help' && cmd !== 'ls -la' && cmd !== 'make') {
+                send();
+            } else {
+                document.getElementById('input').focus();
+            }
         }
         
         function send() {
@@ -335,36 +517,56 @@
             input.value = '';
             addMessage('user', cmd);
             
-            // Show what was sent
-            if (cmd === 'help') {
-                addMessage('assistant', `**PI Agent - Linux Terminal**
-
-Commands you send are executed in the Linux environment below.
-
-**Useful Commands:**
-• \`ls -la\` - List all files
-• \`python3\` - Python REPL
-• \`vim file.txt\` - Edit file
-• \`cat file.txt\` - Read file
-• \`apk add <pkg>\` - Install package
-• \`git clone <url>\` - Clone repo
-
-**Tips:**
-• Use buttons above for quick commands
-• Full Alpine Linux environment
-• Python, Node.js, Git available`);
-            } else {
-                addMessage('system', `→ ${cmd}`);
+            // Process
+            const response = processCmd(cmd);
+            if (response) {
+                addMessage('agent', response);
             }
         }
         
-        function runCmd(c) {
-            document.getElementById('input').value = c;
-            if (!c.endsWith(' ')) {
-                send();
-            } else {
-                document.getElementById('input').focus();
+        function processCmd(cmd) {
+            const lower = cmd.toLowerCase();
+            
+            if (lower === 'help') {
+                return `**PI Agent Commands**
+
+Commands run in the Linux terminal →
+
+**File Operations:**
+\`\`\`bash
+ls -la          # List all files
+cat file.txt    # Read file
+vim file.txt    # Edit file
+mkdir dir       # Create directory
+rm file         # Delete file
+\`\`\`
+
+**Development:**
+\`\`\`bash
+gcc main.c -o app    # Compile C
+python3 script.py   # Run Python
+make                # Build project
+gdb ./app           # Debug
+\`\`\`
+
+**Git:**
+\`\`\`bash
+git status
+git add .
+git commit -m "msg"
+\`\`\`
+
+**System:**
+\`\`\`bash
+ps aux       # Processes
+top          # Monitor
+df -h        # Disk usage
+\`\`\``;
             }
+            
+            // Echo command to show it's running
+            addMessage('system', `→ ${cmd}`);
+            return null;
         }
         
         function addMessage(type, text) {
@@ -379,15 +581,6 @@ Commands you send are executed in the Linux environment below.
             document.getElementById('messages').scrollTop = 1e9;
         }
         
-        function clearMessages() {
-            document.getElementById('messages').innerHTML = '';
-        }
-        
-        function setStatus(s, t) {
-            document.getElementById('status').className = 'status-dot ' + s;
-            document.getElementById('statusText').textContent = t;
-        }
-        
         function handleKey(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -395,7 +588,26 @@ Commands you send are executed in the Linux environment below.
             }
         }
         
-        init();
+        function resizeTerm(size) {
+            const sizes = {
+                small: { cols: 80, rows: 25 },
+                normal: { cols: 100, rows: 35 },
+                large: { cols: 120, rows: 45 }
+            };
+            // Note: v86 doesn't support resize via postMessage
+            // This is just UI feedback
+            document.getElementById('termInfo').textContent = `Alpine Linux · ${sizes[size].cols}x${sizes[size].rows}`;
+        }
+        
+        function restartLinux() {
+            const frame = document.getElementById('termframe');
+            frame.src = frame.src;
+            document.getElementById('loadingScreen').classList.remove('hidden');
+            bootAnimation();
+        }
+        
+        // Init
+        bootAnimation();
     </script>
 </body>
 </html>
