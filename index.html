@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PI WASM Agent</title>
+    <title>PI WASM Agent + Linux</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
             --bg-primary: #0d1117;
@@ -19,47 +19,55 @@
             --blue: #58a6ff;
             --purple: #a371f7;
             --red: #f85149;
-            --orange: #d29922;
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-primary);
             color: var(--text);
-            min-height: 100dvh;
         }
         
-        .app { display: flex; flex-direction: column; height: 100dvh; }
-        
-        /* Header */
-        .header {
-            padding: 10px 16px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
+        .app {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
+            height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
         }
         
         .logo {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             font-weight: 600;
+            font-size: 16px;
         }
         
         .logo-icon {
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             background: linear-gradient(135deg, var(--green), var(--blue));
-            border-radius: 6px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: bold;
         }
         
         .status {
+            margin-top: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -68,45 +76,105 @@
         }
         
         .status-dot {
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: var(--text-secondary);
         }
         
         .status-dot.ready { background: var(--green); }
-        .status-dot.thinking { background: var(--blue); animation: pulse 1s infinite; }
+        .status-dot.loading { background: var(--blue); animation: pulse 1s infinite; }
         
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         
-        /* Tools Bar */
-        .tools-bar {
-            padding: 8px 16px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
+        /* Tabs */
+        .tabs {
             display: flex;
-            gap: 6px;
-            overflow-x: auto;
+            border-bottom: 1px solid var(--border);
         }
         
-        .tool-btn {
-            padding: 6px 12px;
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            color: var(--text);
+            border-bottom-color: var(--blue);
+        }
+        
+        /* Panels */
+        .panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        
+        .files-list {
+            font-size: 12px;
+        }
+        
+        .file-item {
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-icon { margin-right: 8px; }
+        
+        .tools-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .tool-card {
+            padding: 12px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--text-secondary);
-            font-size: 11px;
+            border-radius: 8px;
             cursor: pointer;
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 4px;
+            transition: all 0.2s;
         }
         
-        .tool-btn:active { background: var(--border); color: var(--text); }
-        .tool-btn.active { border-color: var(--blue); color: var(--blue); }
+        .tool-card:hover {
+            border-color: var(--blue);
+        }
         
-        /* Messages */
+        .tool-card h4 {
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .tool-card p {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        /* Main Content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Chat */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
         .messages {
             flex: 1;
             overflow-y: auto;
@@ -117,7 +185,7 @@
         }
         
         .msg {
-            max-width: 90%;
+            max-width: 85%;
             padding: 10px 14px;
             border-radius: 14px;
             font-size: 14px;
@@ -127,13 +195,11 @@
         .msg.user {
             align-self: flex-end;
             background: linear-gradient(135deg, #1f6feb, #388bfd);
-            border-bottom-right-radius: 4px;
         }
         
         .msg.assistant {
             align-self: flex-start;
             background: var(--bg-tertiary);
-            border-bottom-left-radius: 4px;
         }
         
         .msg.system {
@@ -141,10 +207,7 @@
             background: transparent;
             color: var(--text-secondary);
             font-size: 12px;
-            max-width: 100%;
         }
-        
-        .msg.error { border-left: 3px solid var(--red); }
         
         .msg pre {
             background: var(--bg-primary);
@@ -152,15 +215,6 @@
             border-radius: 6px;
             overflow-x: auto;
             margin: 6px 0;
-            font-size: 12px;
-            font-family: 'SF Mono', Monaco, monospace;
-        }
-        
-        .msg code {
-            font-family: 'SF Mono', Monaco, monospace;
-            background: var(--bg-primary);
-            padding: 2px 4px;
-            border-radius: 3px;
             font-size: 12px;
         }
         
@@ -190,7 +244,7 @@
             font-size: 12px;
             font-family: monospace;
             white-space: pre-wrap;
-            max-height: 200px;
+            max-height: 150px;
             overflow-y: auto;
         }
         
@@ -204,7 +258,6 @@
         .input-container {
             display: flex;
             gap: 8px;
-            align-items: flex-end;
         }
         
         .input-wrapper {
@@ -225,12 +278,9 @@
             font-size: 14px;
             padding: 6px 12px;
             resize: none;
-            min-height: 22px;
-            max-height: 100px;
             font-family: inherit;
         }
         
-        .input-wrapper textarea::placeholder { color: var(--text-secondary); }
         .input-wrapper textarea:focus { outline: none; }
         
         .send-btn {
@@ -242,158 +292,165 @@
             color: #fff;
             font-size: 16px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         
-        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .send-btn:disabled { opacity: 0.5; }
         
-        /* Settings Modal */
-        .modal {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
+        /* Linux Terminal */
+        .linux-panel {
             display: none;
-            align-items: flex-end;
-            z-index: 100;
-        }
-        
-        .modal.active { display: flex; }
-        
-        .modal-content {
-            background: var(--bg-secondary);
-            border-radius: 16px 16px 0 0;
-            width: 100%;
-            max-height: 80vh;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        
-        .modal-title { font-size: 16px; font-weight: 600; }
-        .modal-close {
-            width: 28px; height: 28px;
-            border-radius: 50%;
-            background: var(--bg-tertiary);
-            border: none;
-            color: var(--text);
-            font-size: 18px;
-            cursor: pointer;
-        }
-        
-        .setting-group { margin-bottom: 16px; }
-        .setting-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; }
-        
-        .setting-input {
-            width: 100%;
-            padding: 10px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--text);
-            font-size: 14px;
-        }
-        
-        .setting-input:focus { outline: none; border-color: var(--blue); }
-        
-        .provider-btns { display: flex; gap: 6px; }
-        .provider-btn {
             flex: 1;
-            padding: 8px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--text-secondary);
-            font-size: 12px;
-            cursor: pointer;
+            flex-direction: column;
         }
-        .provider-btn.active { border-color: var(--blue); color: var(--blue); }
+        
+        .linux-panel.active { display: flex; }
+        
+        .terminal-container {
+            flex: 1;
+            background: #000;
+            position: relative;
+        }
+        
+        .terminal-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        /* Mode Toggle */
+        .mode-toggle {
+            display: flex;
+            padding: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 6px;
+            text-align: center;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 4px;
+            color: var(--text-secondary);
+        }
+        
+        .mode-btn.active {
+            background: var(--bg-secondary);
+            color: var(--text);
+        }
+        
+        /* Mobile */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .app {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="app">
-        <header class="header">
-            <div class="logo">
-                <div class="logo-icon">π</div>
-                <span>PI WASM Agent</span>
-            </div>
-            <div class="status">
-                <span class="status-dot" id="status"></span>
-                <span id="statusText">Loading...</span>
-            </div>
-        </header>
-        
-        <div class="tools-bar">
-            <button class="tool-btn" onclick="showTool('read')">📄 Read</button>
-            <button class="tool-btn" onclick="showTool('write')">✏️ Write</button>
-            <button class="tool-btn" onclick="showTool('edit')">🔧 Edit</button>
-            <button class="tool-btn" onclick="showTool('bash')">💻 Bash</button>
-            <button class="tool-btn" onclick="showTool('files')">📁 Files</button>
-            <button class="tool-btn" onclick="openSettings()">⚙️</button>
-        </div>
-        
-        <div class="messages" id="messages">
-            <div class="msg system">Loading Python runtime...</div>
-        </div>
-        
-        <div class="input-area">
-            <div class="input-container">
-                <div class="input-wrapper">
-                    <textarea id="input" rows="1" placeholder="Message PI Agent..." onkeydown="handleKey(event)"></textarea>
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">π</div>
+                    <span>PI Agent</span>
                 </div>
-                <button class="send-btn" id="sendBtn" onclick="send()" disabled>➤</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Settings Modal -->
-    <div class="modal" id="settingsModal" onclick="closeSettings(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <span class="modal-title">Settings</span>
-                <button class="modal-close" onclick="closeSettings()">✕</button>
-            </div>
-            
-            <div class="setting-group">
-                <div class="setting-label">Provider</div>
-                <div class="provider-btns">
-                    <button class="provider-btn active" id="pLocal" onclick="setProvider('local')">Local</button>
-                    <button class="provider-btn" id="pOpenAI" onclick="setProvider('openai')">OpenAI</button>
-                    <button class="provider-btn" id="pAnthropic" onclick="setProvider('anthropic')">Anthropic</button>
+                <div class="status">
+                    <span class="status-dot" id="status"></span>
+                    <span id="statusText">Loading...</span>
                 </div>
             </div>
             
-            <div class="setting-group" id="apiKeyGroup" style="display:none">
-                <div class="setting-label">API Key</div>
-                <input type="password" class="setting-input" id="apiKey" placeholder="sk-...">
+            <div class="tabs">
+                <div class="tab active" onclick="showPanel('files')">📁 Files</div>
+                <div class="tab" onclick="showPanel('tools')">🔧 Tools</div>
             </div>
             
-            <div class="setting-group">
-                <div class="setting-label">Virtual Files</div>
-                <div id="filesList" style="font-size:12px;color:var(--text-secondary)">No files</div>
+            <div class="panel" id="filesPanel">
+                <div class="files-list" id="filesList">
+                    <div style="color:var(--text-secondary);text-align:center;padding:20px">
+                        No files yet
+                    </div>
+                </div>
             </div>
             
-            <div class="setting-group">
-                <div class="setting-label">Session</div>
-                <div id="sessionInfo" style="font-size:12px;color:var(--text-secondary)">New session</div>
+            <div class="panel" id="toolsPanel" style="display:none">
+                <div class="tools-grid">
+                    <div class="tool-card" onclick="insertCommand('read ')">
+                        <h4>📄 Read</h4>
+                        <p>Read file contents</p>
+                    </div>
+                    <div class="tool-card" onclick="insertCommand('write ')">
+                        <h4>✏️ Write</h4>
+                        <p>Create/overwrite file</p>
+                    </div>
+                    <div class="tool-card" onclick="insertCommand('edit ')">
+                        <h4>🔧 Edit</h4>
+                        <p>Modify file content</p>
+                    </div>
+                    <div class="tool-card" onclick="insertCommand('!')">
+                        <h4>💻 Bash</h4>
+                        <p>Run shell command</p>
+                    </div>
+                    <div class="tool-card" onclick="insertCommand('python:\\n```python\\n\\n```')">
+                        <h4>🐍 Python</h4>
+                        <p>Execute Python code</p>
+                    </div>
+                    <div class="tool-card" onclick="toggleLinux()">
+                        <h4>🐧 Linux</h4>
+                        <p>Full Linux terminal</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main">
+            <!-- Mode Toggle -->
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+                <div class="mode-toggle">
+                    <div class="mode-btn active" id="chatMode" onclick="setMode('chat')">💬 Chat</div>
+                    <div class="mode-btn" id="linuxMode" onclick="setMode('linux')">🐧 Linux</div>
+                </div>
+            </div>
+            
+            <!-- Chat Mode -->
+            <div class="chat-container" id="chatContainer">
+                <div class="messages" id="messages">
+                    <div class="msg system">Loading Python runtime...</div>
+                </div>
+                
+                <div class="input-area">
+                    <div class="input-container">
+                        <div class="input-wrapper">
+                            <textarea id="input" rows="1" placeholder="Message PI Agent..." onkeydown="handleKey(event)"></textarea>
+                        </div>
+                        <button class="send-btn" id="sendBtn" onclick="send()" disabled>➤</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Linux Mode -->
+            <div class="linux-panel" id="linuxPanel">
+                <div class="terminal-container">
+                    <iframe src="https://webvm.io" id="webvmFrame"></iframe>
+                </div>
             </div>
         </div>
     </div>
     
     <script>
         let pyodide = null;
-        let provider = 'local';
+        let mode = 'chat';
         let isThinking = false;
-        let session = { messages: [], tools: [], tokens: 0 };
         
-        // Initialize Pyodide and Agent
+        // Initialize
         async function init() {
             setStatus('loading', 'Loading Python...');
             
@@ -405,445 +462,313 @@
                 document.getElementById('sendBtn').disabled = false;
                 
                 clearMessages();
-                addMessage('system', 'PI WASM Agent ready! I can read/write files, edit code, and run bash commands.');
+                addMessage('system', 'PI WASM Agent ready! Type "help" for commands, or switch to Linux mode for a full terminal.');
             } catch (e) {
                 setStatus('error', 'Error');
-                addMessage('system error', 'Failed to load: ' + e.message);
+                addMessage('system', 'Failed: ' + e.message);
             }
         }
         
-        // Initialize Agent (PI Agent Loop Pattern)
         async function initAgent() {
-            const agentCode = `
+            await pyodide.runPythonAsync(`
 import json
 import sys
-import os
 from io import StringIO
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, field
-from enum import Enum
-
-# ==================== PI Agent Core ====================
-
-class ToolName(Enum):
-    READ = "read"
-    WRITE = "write"
-    EDIT = "edit"
-    BASH = "bash"
+from typing import Dict, List, Optional
+from dataclasses import dataclass
 
 @dataclass
-class ToolResult:
+class Result:
     success: bool
     output: str
     error: Optional[str] = None
 
-@dataclass
-class Message:
-    role: str  # user, assistant, tool_result
-    content: str
-    tool_calls: List[Dict] = field(default_factory=list)
-    tool_name: Optional[str] = None
-
-class VirtualFS:
-    """Virtual file system for WASM environment"""
+class FS:
     def __init__(self):
         self.files: Dict[str, str] = {}
-        self.cwd = "/"
     
-    def read(self, path: str) -> ToolResult:
-        try:
-            if path in self.files:
-                return ToolResult(True, self.files[path])
-            return ToolResult(False, "", f"File not found: {path}")
-        except Exception as e:
-            return ToolResult(False, "", str(e))
-    
-    def write(self, path: str, content: str) -> ToolResult:
-        try:
-            self.files[path] = content
-            return ToolResult(True, f"Wrote {len(content)} chars to {path}")
-        except Exception as e:
-            return ToolResult(False, "", str(e))
-    
-    def edit(self, path: str, old: str, new: str) -> ToolResult:
-        try:
-            if path not in self.files:
-                return ToolResult(False, "", f"File not found: {path}")
-            content = self.files[path]
-            if old not in content:
-                return ToolResult(False, "", f"Pattern not found: {old[:50]}...")
-            self.files[path] = content.replace(old, new)
-            return ToolResult(True, f"Edited {path}")
-        except Exception as e:
-            return ToolResult(False, "", str(e))
-    
-    def list_files(self) -> List[str]:
-        return list(self.files.keys())
-    
-    def delete(self, path: str) -> ToolResult:
+    def read(self, path: str) -> Result:
         if path in self.files:
-            del self.files[path]
-            return ToolResult(True, f"Deleted {path}")
-        return ToolResult(False, "", f"Not found: {path}")
+            return Result(True, self.files[path])
+        return Result(False, "", f"Not found: {path}")
+    
+    def write(self, path: str, content: str) -> Result:
+        self.files[path] = content
+        return Result(True, f"Wrote {len(content)} chars to {path}")
+    
+    def edit(self, path: str, old: str, new: str) -> Result:
+        if path not in self.files:
+            return Result(False, "", f"Not found: {path}")
+        if old not in self.files[path]:
+            return Result(False, "", f"Pattern not found")
+        self.files[path] = self.files[path].replace(old, new)
+        return Result(True, "Edited")
+    
+    def list(self) -> List[str]:
+        return list(self.files.keys())
 
-class BashEmulator:
-    """Limited bash emulation for WASM"""
-    def __init__(self, fs: VirtualFS):
+class Bash:
+    def __init__(self, fs: FS):
         self.fs = fs
-        self.env = {"HOME": "/home/user", "PATH": "/usr/bin"}
     
-    def run(self, cmd: str) -> ToolResult:
-        try:
-            parts = cmd.strip().split()
-            if not parts:
-                return ToolResult(True, "")
-            
-            # Built-in commands
-            if parts[0] == "ls":
-                files = self.fs.list_files()
-                return ToolResult(True, "\\n".join(files) if files else "(empty)")
-            
-            elif parts[0] == "cat":
-                if len(parts) < 2:
-                    return ToolResult(False, "", "Usage: cat <file>")
-                result = self.fs.read(parts[1])
-                return result
-            
-            elif parts[0] == "echo":
-                return ToolResult(True, " ".join(parts[1:]))
-            
-            elif parts[0] == "pwd":
-                return ToolResult(True, self.fs.cwd)
-            
-            elif parts[0] == "python" or parts[0] == "python3":
-                # Execute Python code
-                if "-c" in parts:
-                    idx = parts.index("-c")
-                    code = " ".join(parts[idx+1:])
-                    old_stdout = sys.stdout
-                    sys.stdout = StringIO()
-                    try:
-                        exec(code)
-                        output = sys.stdout.getvalue()
-                        sys.stdout = old_stdout
-                        return ToolResult(True, output)
-                    except Exception as e:
-                        sys.stdout = old_stdout
-                        return ToolResult(False, "", str(e))
-                return ToolResult(False, "", "Only -c supported")
-            
-            else:
-                return ToolResult(False, "", f"Command not found: {parts[0]}")
+    def run(self, cmd: str) -> Result:
+        parts = cmd.strip().split()
+        if not parts:
+            return Result(True, "")
         
-        except Exception as e:
-            return ToolResult(False, "", str(e))
+        if parts[0] == "ls":
+            files = self.fs.list()
+            return Result(True, "\\n".join(files) if files else "(empty)")
+        elif parts[0] == "cat":
+            if len(parts) < 2:
+                return Result(False, "", "Usage: cat <file>")
+            return self.fs.read(parts[1])
+        elif parts[0] == "echo":
+            return Result(True, " ".join(parts[1:]))
+        elif parts[0] == "pwd":
+            return Result(True, "/home/user")
+        elif parts[0] in ("python", "python3"):
+            if "-c" in parts:
+                idx = parts.index("-c")
+                code = " ".join(parts[idx+1:])
+                old = sys.stdout
+                sys.stdout = StringIO()
+                try:
+                    exec(code)
+                    out = sys.stdout.getvalue()
+                    sys.stdout = old
+                    return Result(True, out)
+                except Exception as e:
+                    sys.stdout = old
+                    return Result(False, "", str(e))
+            return Result(False, "", "Use -c for inline code")
+        else:
+            return Result(False, "", f"Command not found: {parts[0]}\\nTip: Switch to Linux mode for full terminal!")
 
-# Global instances
-fs = VirtualFS()
-bash = BashEmulator(fs)
+fs = FS()
+bash = Bash(fs)
 
-# ==================== Agent Tools ====================
-
-TOOLS = [
-    {
-        "name": "read",
-        "description": "Read file contents",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path to read"}
-            },
-            "required": ["path"]
-        }
-    },
-    {
-        "name": "write",
-        "description": "Write content to a file",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path"},
-                "content": {"type": "string", "description": "Content to write"}
-            },
-            "required": ["path", "content"]
-        }
-    },
-    {
-        "name": "edit",
-        "description": "Edit a file by replacing text",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path"},
-                "old_text": {"type": "string", "description": "Text to replace"},
-                "new_text": {"type": "string", "description": "Replacement text"}
-            },
-            "required": ["path", "old_text", "new_text"]
-        }
-    },
-    {
-        "name": "bash",
-        "description": "Execute bash command",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "command": {"type": "string", "description": "Command to execute"}
-            },
-            "required": ["command"]
-        }
-    }
-]
-
-def execute_tool(name: str, args: Dict) -> Dict:
-    """Execute a tool and return result"""
-    result = None
-    
+def exec_tool(name: str, args: dict) -> dict:
     if name == "read":
-        r = fs.read(args.get("path", ""))
-        result = {"success": r.success, "output": r.output, "error": r.error}
-    
+        r = fs.read(args.get("path",""))
+        return {"success": r.success, "output": r.output, "error": r.error}
     elif name == "write":
-        r = fs.write(args.get("path", ""), args.get("content", ""))
-        result = {"success": r.success, "output": r.output, "error": r.error}
-    
+        r = fs.write(args.get("path",""), args.get("content",""))
+        return {"success": r.success, "output": r.output, "error": r.error}
     elif name == "edit":
-        r = fs.edit(args.get("path", ""), args.get("old_text", ""), args.get("new_text", ""))
-        result = {"success": r.success, "output": r.output, "error": r.error}
-    
+        r = fs.edit(args.get("path",""), args.get("old",""), args.get("new",""))
+        return {"success": r.success, "output": r.output, "error": r.error}
     elif name == "bash":
-        r = bash.run(args.get("command", ""))
-        result = {"success": r.success, "output": r.output, "error": r.error}
-    
-    else:
-        result = {"success": False, "error": f"Unknown tool: {name}"}
-    
-    return result
-
-def get_tools():
-    return TOOLS
+        r = bash.run(args.get("command",""))
+        return {"success": r.success, "output": r.output, "error": r.error}
+    return {"success": False, "error": f"Unknown: {name}"}
 
 def get_files():
-    return fs.list_files()
-
-def get_fs():
     return fs.files
-`;
-            
-            await pyodide.runPythonAsync(agentCode);
+`);
         }
         
-        // Execute tool
-        async function executeTool(name, args) {
+        async function execTool(name, args) {
             const result = await pyodide.runPythonAsync(
-                `json.dumps(execute_tool("${name}", ${JSON.stringify(args)}))`
+                `json.dumps(exec_tool("${name}", ${JSON.stringify(args)}))`
             );
             return JSON.parse(result);
         }
         
-        // Send message
         async function send() {
             const input = document.getElementById('input');
             const text = input.value.trim();
             if (!text || isThinking) return;
             
             input.value = '';
-            input.style.height = 'auto';
-            
             addMessage('user', text);
-            session.messages.push({ role: 'user', content: text });
             
             isThinking = true;
-            setStatus('thinking', 'Thinking...');
+            setStatus('loading', 'Thinking...');
             document.getElementById('sendBtn').disabled = true;
             
             try {
-                const response = await processWithAgentLoop(text);
+                const response = await processMessage(text);
                 addMessage('assistant', response);
-                session.messages.push({ role: 'assistant', content: response });
             } catch (e) {
-                addMessage('assistant error', 'Error: ' + e.message);
+                addMessage('assistant', 'Error: ' + e.message);
             }
             
             isThinking = false;
             setStatus('ready', 'Ready');
             document.getElementById('sendBtn').disabled = false;
-            updateSessionInfo();
+            updateFiles();
         }
         
-        // PI Agent Loop (simplified)
-        async function processWithAgentLoop(message) {
-            const lower = message.toLowerCase();
+        async function processMessage(msg) {
+            const lower = msg.toLowerCase();
             
-            // Parse tool commands
-            // Read: read <path>
-            if (lower.startsWith('read ') || lower.startsWith('cat ')) {
-                const path = message.split(/\s+/)[1];
-                const result = await executeTool('read', { path });
-                return formatToolResult('read', { path }, result);
+            // Help
+            if (lower === 'help') {
+                return `**PI WASM Agent Commands**
+
+**File Operations:**
+• \`read <path>\` - Read file
+• \`write <path> <content>\` - Write file
+• \`edit <path> "old" "new"\` - Edit file
+• \`ls\` or \`list files\` - List files
+
+**Bash Commands:**
+• \`!<command>\` - Run bash command
+• \`!ls\`, \`!cat <file>\`, \`!echo <text>\`
+
+**Python:**
+• \`\`\`python\\ncode here\\n\`\`\`
+
+**Linux Mode:**
+• Click "🐧 Linux" tab for full Linux terminal (WebVM)
+• Or type \`linux\` to switch modes
+
+**Examples:**
+• \`write hello.py print("Hello!")\`
+• \`!python -c "print(1+1)"\`
+• \`read hello.py\``;
             }
             
-            // Write: write <path> <content> or create file
-            if (lower.startsWith('write ') || (lower.includes('create') && lower.includes('file'))) {
-                if (lower.startsWith('write ')) {
-                    const parts = message.match(/write\s+(\S+)\s+(.+)/is);
-                    if (parts) {
-                        const result = await executeTool('write', { path: parts[1], content: parts[2] });
-                        return formatToolResult('write', { path: parts[1] }, result);
-                    }
-                } else {
-                    const pathMatch = message.match(/called?\s+(\S+)/i);
-                    const contentMatch = message.match(/content\s+["'](.+?)["']/i) || message.match(/["'](.+?)["']/);
-                    const path = pathMatch ? pathMatch[1] : 'file.txt';
-                    const content = contentMatch ? contentMatch[1] : '';
-                    const result = await executeTool('write', { path, content });
-                    return formatToolResult('write', { path }, result);
+            // Switch to Linux
+            if (lower === 'linux') {
+                setMode('linux');
+                return 'Switched to Linux mode! You now have access to a full Linux terminal.';
+            }
+            
+            // Read
+            if (lower.startsWith('read ') || lower.startsWith('cat ')) {
+                const path = msg.split(/\s+/)[1];
+                const r = await execTool('read', {path});
+                return formatResult('read', {path}, r);
+            }
+            
+            // Write
+            if (lower.startsWith('write ')) {
+                const m = msg.match(/write\s+(\S+)\s+(.+)/is);
+                if (m) {
+                    const r = await execTool('write', {path: m[1], content: m[2]});
+                    return formatResult('write', {path: m[1]}, r);
                 }
             }
             
-            // Edit: edit <path> <old> <new>
+            // Create file
+            if (lower.includes('create') && lower.includes('file')) {
+                const p = msg.match(/called?\s+(\S+)/i);
+                const c = msg.match(/content\s+["'](.+?)["']/i) || msg.match(/["'](.+?)["']/);
+                const path = p ? p[1] : 'file.txt';
+                const content = c ? c[1] : '';
+                const r = await execTool('write', {path, content});
+                return formatResult('write', {path}, r);
+            }
+            
+            // Edit
             if (lower.startsWith('edit ')) {
-                const match = message.match(/edit\s+(\S+)\s+["'](.+?)["']\s+["'](.+?)["']/is);
-                if (match) {
-                    const result = await executeTool('edit', { path: match[1], old_text: match[2], new_text: match[3] });
-                    return formatToolResult('edit', { path: match[1] }, result);
+                const m = msg.match(/edit\s+(\S+)\s+["'](.+?)["']\s+["'](.+?)["']/is);
+                if (m) {
+                    const r = await execTool('edit', {path: m[1], old: m[2], new: m[3]});
+                    return formatResult('edit', {path: m[1]}, r);
                 }
                 return 'Usage: edit <path> "old text" "new text"';
             }
             
-            // Bash: !<command> or bash <command>
-            if (message.startsWith('!') || lower.startsWith('bash ')) {
-                const cmd = message.startsWith('!') ? message.slice(1) : message.slice(5);
-                const result = await executeTool('bash', { command: cmd });
-                return formatToolResult('bash', { command: cmd }, result);
+            // Bash
+            if (msg.startsWith('!') || lower.startsWith('bash ')) {
+                const cmd = msg.startsWith('!') ? msg.slice(1) : msg.slice(5);
+                const r = await execTool('bash', {command: cmd});
+                if (!r.success && r.error && r.error.includes('not found')) {
+                    r.error += '\n\n💡 Tip: Switch to Linux mode for full terminal access!';
+                }
+                return formatResult('bash', {command: cmd}, r);
             }
             
             // List files
             if (lower.includes('list') && lower.includes('file')) {
-                const result = await executeTool('bash', { command: 'ls' });
-                return formatToolResult('bash', { command: 'ls' }, result);
+                const r = await execTool('bash', {command: 'ls'});
+                return formatResult('bash', {command: 'ls'}, r);
             }
             
-            // Python execution
-            const codeMatch = message.match(/```(?:python)?\n?([\s\S]*?)```/);
-            if (codeMatch) {
-                const result = await executeTool('bash', { command: `python -c "${codeMatch[1].replace(/"/g, '\\"')}"` });
-                return formatToolResult('bash', { command: 'python' }, result);
+            // Python code
+            const code = msg.match(/```(?:python)?\n?([\s\S]*?)```/);
+            if (code) {
+                const r = await execTool('bash', {command: `python -c "${code[1].replace(/"/g, '\\"')}"`});
+                return formatResult('bash', {command: 'python'}, r);
             }
             
-            // Default: show help
-            return `**PI WASM Agent** - Browser-based AI coding assistant
+            // Default
+            return `I'm PI WASM Agent! Type \`help\` for commands.
 
-**Available Tools:**
-• \`read <path>\` - Read file contents
-• \`write <path> <content>\` - Write to file
-• \`edit <path> "old" "new"\` - Edit file
-• \`!<command>\` or \`bash <cmd>\` - Run command
-• \`ls\` - List files
-
-**Examples:**
-• \`read hello.txt\`
-• \`write test.py print("hello")\`
-• \`!ls\`
-• \`!python -c "print(1+1)"\`
-
-**Features:**
-• Virtual file system
-• Python execution
-• Bash emulation`;
+**Quick Start:**
+• \`write test.py print("Hello!")\` - Create a file
+• \`!python -c "print(1+1)"\` - Run Python
+• \`linux\` - Switch to full Linux terminal`;
         }
         
-        function formatToolResult(tool, args, result) {
-            let output = `<div class="tool-call">`;
-            output += `<div class="tool-header"><span class="tool-name">${tool}</span>`;
-            
-            if (args.path) output += ` → ${args.path}`;
-            if (args.command) output += ` → ${args.command}`;
-            
-            output += `</div>`;
-            output += `<div class="tool-body">`;
-            
-            if (result.success) {
-                output += result.output || '(no output)';
-            } else {
-                output += `<span style="color:var(--red)">Error: ${result.error}</span>`;
-            }
-            
-            output += `</div></div>`;
-            return output;
+        function formatResult(tool, args, r) {
+            let out = `<div class="tool-call"><div class="tool-header">`;
+            out += `<span class="tool-name">${tool}</span>`;
+            if (args.path) out += ` → ${args.path}`;
+            if (args.command) out += ` → ${args.command}`;
+            out += `</div><div class="tool-body">`;
+            out += r.success ? (r.output || '(no output)') : `<span style="color:var(--red)">${r.error}</span>`;
+            out += `</div></div>`;
+            return out;
         }
         
         // UI Functions
         function addMessage(type, content) {
             const div = document.createElement('div');
             div.className = `msg ${type}`;
-            div.innerHTML = formatContent(content);
-            document.getElementById('messages').appendChild(div);
-            scrollToBottom();
-        }
-        
-        function formatContent(text) {
-            return text
+            div.innerHTML = content
                 .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre>$2</pre>')
                 .replace(/`([^`]+)`/g, '<code>$1</code>')
                 .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
                 .replace(/\n/g, '<br>');
-        }
-        
-        function scrollToBottom() {
-            const m = document.getElementById('messages');
-            m.scrollTop = m.scrollHeight;
+            document.getElementById('messages').appendChild(div);
+            document.getElementById('messages').scrollTop = 1e9;
         }
         
         function clearMessages() {
             document.getElementById('messages').innerHTML = '';
         }
         
-        function setStatus(status, text) {
-            document.getElementById('status').className = 'status-dot ' + status;
-            document.getElementById('statusText').textContent = text;
+        function setStatus(s, t) {
+            document.getElementById('status').className = 'status-dot ' + s;
+            document.getElementById('statusText').textContent = t;
         }
         
-        function updateSessionInfo() {
-            document.getElementById('sessionInfo').textContent = 
-                `Messages: ${session.messages.length}`;
-        }
-        
-        // Settings
-        function openSettings() {
-            document.getElementById('settingsModal').classList.add('active');
-            updateFilesList();
-        }
-        
-        function closeSettings(e) {
-            if (!e || e.target.id === 'settingsModal') {
-                document.getElementById('settingsModal').classList.remove('active');
-            }
-        }
-        
-        function setProvider(p) {
-            provider = p;
-            document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('p' + p.charAt(0).toUpperCase() + p.slice(1)).classList.add('active');
-            document.getElementById('apiKeyGroup').style.display = p === 'local' ? 'none' : 'block';
-        }
-        
-        async function updateFilesList() {
+        async function updateFiles() {
             const files = await pyodide.runPythonAsync('json.dumps(get_files())');
             const obj = JSON.parse(files);
-            document.getElementById('filesList').innerHTML = 
-                Object.keys(obj).length === 0 ? 'No files' : 
-                Object.keys(obj).map(p => `📄 ${p}`).join('<br>');
+            const list = document.getElementById('filesList');
+            list.innerHTML = Object.keys(obj).length === 0 
+                ? '<div style="color:var(--text-secondary);text-align:center;padding:20px">No files yet</div>'
+                : Object.keys(obj).map(p => `<div class="file-item"><span><span class="file-icon">📄</span>${p}</span></div>`).join('');
         }
         
-        function showTool(tool) {
-            const prompts = {
-                read: 'read hello.txt',
-                write: 'write hello.txt Hello World!',
-                edit: 'edit hello.txt "Hello" "Hi"',
-                bash: '!ls',
-                files: 'list files'
-            };
-            document.getElementById('input').value = prompts[tool];
+        function showPanel(p) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+            document.querySelector(`.tab:nth-child(${p === 'files' ? 1 : 2})`).classList.add('active');
+            document.getElementById(p + 'Panel').style.display = 'block';
+        }
+        
+        function setMode(m) {
+            mode = m;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(m + 'Mode').classList.add('active');
+            
+            document.getElementById('chatContainer').style.display = m === 'chat' ? 'flex' : 'none';
+            document.getElementById('linuxPanel').classList.toggle('active', m === 'linux');
+        }
+        
+        function toggleLinux() {
+            setMode(mode === 'linux' ? 'chat' : 'linux');
+        }
+        
+        function insertCommand(cmd) {
+            document.getElementById('input').value = cmd;
+            document.getElementById('input').focus();
         }
         
         function handleKey(e) {
@@ -852,12 +777,6 @@ def get_fs():
                 send();
             }
         }
-        
-        // Auto-resize textarea
-        document.getElementById('input').addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
-        });
         
         // Init
         init();
