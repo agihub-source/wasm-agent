@@ -3,49 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WASM Agent</title>
+    <title>PI WASM Agent</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
         :root {
             --bg-primary: #0d1117;
             --bg-secondary: #161b22;
             --bg-tertiary: #21262d;
-            --border-color: #30363d;
-            --text-primary: #e6edf3;
+            --border: #30363d;
+            --text: #e6edf3;
             --text-secondary: #8b949e;
-            --accent-green: #3fb950;
-            --accent-blue: #58a6ff;
-            --accent-purple: #a371f7;
+            --green: #3fb950;
+            --blue: #58a6ff;
+            --purple: #a371f7;
+            --red: #f85149;
+            --orange: #d29922;
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
+            color: var(--text);
             min-height: 100dvh;
-            overflow: hidden;
         }
         
-        .app {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            height: 100dvh;
-        }
+        .app { display: flex; flex-direction: column; height: 100dvh; }
         
         /* Header */
         .header {
-            padding: 12px 16px;
+            padding: 10px 16px;
             background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -56,41 +46,65 @@
             align-items: center;
             gap: 8px;
             font-weight: 600;
-            font-size: 16px;
         }
         
         .logo-icon {
-            width: 28px;
-            height: 28px;
-            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
-            border-radius: 8px;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--green), var(--blue));
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 14px;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
         }
         
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: var(--text-secondary);
         }
         
-        .status-dot.ready {
-            background: var(--accent-green);
-            box-shadow: 0 0 8px var(--accent-green);
+        .status-dot.ready { background: var(--green); }
+        .status-dot.thinking { background: var(--blue); animation: pulse 1s infinite; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        
+        /* Tools Bar */
+        .tools-bar {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
         }
         
-        .status-dot.loading {
-            background: var(--accent-blue);
-            animation: pulse 1s infinite;
+        .tool-btn {
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 11px;
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
         
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
+        .tool-btn:active { background: var(--border); color: var(--text); }
+        .tool-btn.active { border-color: var(--blue); color: var(--blue); }
         
         /* Messages */
         .messages {
@@ -104,8 +118,8 @@
         
         .msg {
             max-width: 90%;
-            padding: 12px 14px;
-            border-radius: 16px;
+            padding: 10px 14px;
+            border-radius: 14px;
             font-size: 14px;
             line-height: 1.5;
         }
@@ -127,320 +141,212 @@
             background: transparent;
             color: var(--text-secondary);
             font-size: 12px;
-            text-align: center;
             max-width: 100%;
-            padding: 8px;
         }
+        
+        .msg.error { border-left: 3px solid var(--red); }
         
         .msg pre {
             background: var(--bg-primary);
-            padding: 10px;
-            border-radius: 8px;
+            padding: 8px;
+            border-radius: 6px;
             overflow-x: auto;
-            margin: 8px 0;
+            margin: 6px 0;
             font-size: 12px;
-            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-family: 'SF Mono', Monaco, monospace;
         }
         
         .msg code {
-            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-family: 'SF Mono', Monaco, monospace;
             background: var(--bg-primary);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 13px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 12px;
         }
         
-        .typing {
+        /* Tool Call */
+        .tool-call {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        
+        .tool-header {
+            padding: 8px 12px;
+            background: rgba(88, 166, 255, 0.1);
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
             display: flex;
-            gap: 4px;
-            padding: 12px 14px;
+            align-items: center;
+            gap: 6px;
         }
         
-        .typing span {
-            width: 6px;
-            height: 6px;
-            background: var(--text-secondary);
-            border-radius: 50%;
-            animation: typing 1s infinite;
-        }
+        .tool-name { color: var(--blue); font-weight: 600; }
         
-        .typing span:nth-child(2) { animation-delay: 0.2s; }
-        .typing span:nth-child(3) { animation-delay: 0.4s; }
-        
-        @keyframes typing {
-            0%, 100% { opacity: 0.4; transform: translateY(0); }
-            50% { opacity: 1; transform: translateY(-3px); }
+        .tool-body {
+            padding: 8px 12px;
+            font-size: 12px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
         }
         
         /* Input */
         .input-area {
             padding: 12px 16px;
             background: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
+            border-top: 1px solid var(--border);
         }
         
         .input-container {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: flex-end;
         }
         
         .input-wrapper {
             flex: 1;
             background: var(--bg-tertiary);
-            border-radius: 20px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
             padding: 4px;
-            border: 1px solid var(--border-color);
-            transition: border-color 0.2s;
         }
         
-        .input-wrapper:focus-within {
-            border-color: var(--accent-blue);
-        }
+        .input-wrapper:focus-within { border-color: var(--blue); }
         
         .input-wrapper textarea {
             width: 100%;
             background: transparent;
             border: none;
-            color: var(--text-primary);
+            color: var(--text);
             font-size: 14px;
-            padding: 8px 12px;
+            padding: 6px 12px;
             resize: none;
-            min-height: 24px;
-            max-height: 120px;
+            min-height: 22px;
+            max-height: 100px;
             font-family: inherit;
         }
         
-        .input-wrapper textarea::placeholder {
-            color: var(--text-secondary);
-        }
-        
-        .input-wrapper textarea:focus {
-            outline: none;
-        }
+        .input-wrapper textarea::placeholder { color: var(--text-secondary); }
+        .input-wrapper textarea:focus { outline: none; }
         
         .send-btn {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent-green), #2ea043);
+            background: linear-gradient(135deg, var(--green), #2ea043);
             border: none;
             color: #fff;
-            font-size: 18px;
+            font-size: 16px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
-            transition: transform 0.2s, opacity 0.2s;
         }
         
-        .send-btn:active {
-            transform: scale(0.92);
-        }
-        
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        /* Quick Actions */
-        .quick-actions {
-            display: flex;
-            gap: 8px;
-            padding: 8px 0;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        .quick-btn {
-            flex-shrink: 0;
-            padding: 6px 14px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            color: var(--text-secondary);
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .quick-btn:active {
-            background: var(--border-color);
-            color: var(--text-primary);
-        }
+        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
         /* Settings Modal */
-        .modal-overlay {
+        .modal {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.8);
             display: none;
             align-items: flex-end;
             z-index: 100;
         }
         
-        .modal-overlay.active {
-            display: flex;
-        }
+        .modal.active { display: flex; }
         
-        .modal {
+        .modal-content {
             background: var(--bg-secondary);
             border-radius: 16px 16px 0 0;
             width: 100%;
             max-height: 80vh;
             padding: 20px;
-            animation: slideUp 0.3s ease;
-        }
-        
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
+            overflow-y: auto;
         }
         
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         
-        .modal-title {
-            font-size: 18px;
-            font-weight: 600;
-        }
-        
+        .modal-title { font-size: 16px; font-weight: 600; }
         .modal-close {
-            width: 32px;
-            height: 32px;
+            width: 28px; height: 28px;
             border-radius: 50%;
             background: var(--bg-tertiary);
             border: none;
-            color: var(--text-primary);
-            font-size: 20px;
+            color: var(--text);
+            font-size: 18px;
             cursor: pointer;
         }
         
-        .setting-group {
-            margin-bottom: 20px;
-        }
-        
-        .setting-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        .setting-group { margin-bottom: 16px; }
+        .setting-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; }
         
         .setting-input {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
             font-size: 14px;
         }
         
-        .setting-input:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-        }
+        .setting-input:focus { outline: none; border-color: var(--blue); }
         
-        .provider-btns {
-            display: flex;
-            gap: 8px;
-        }
-        
+        .provider-btns { display: flex; gap: 6px; }
         .provider-btn {
             flex: 1;
-            padding: 10px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-secondary);
-            font-size: 13px;
-            cursor: pointer;
-        }
-        
-        .provider-btn.active {
-            border-color: var(--accent-blue);
-            color: var(--accent-blue);
-            background: rgba(88, 166, 255, 0.1);
-        }
-        
-        /* Files Panel */
-        .files-panel {
-            background: var(--bg-tertiary);
-            border-radius: 12px;
-            padding: 12px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-        
-        .file-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             padding: 8px;
-            background: var(--bg-secondary);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
             border-radius: 6px;
-            margin-bottom: 6px;
-            font-size: 13px;
-        }
-        
-        .file-item:last-child {
-            margin-bottom: 0;
-        }
-        
-        .file-delete {
-            background: none;
-            border: none;
-            color: #f85149;
-            cursor: pointer;
-            padding: 4px 8px;
-            font-size: 16px;
-        }
-        
-        .empty-state {
-            text-align: center;
             color: var(--text-secondary);
-            font-size: 13px;
-            padding: 20px;
+            font-size: 12px;
+            cursor: pointer;
         }
+        .provider-btn.active { border-color: var(--blue); color: var(--blue); }
     </style>
 </head>
 <body>
     <div class="app">
         <header class="header">
             <div class="logo">
-                <div class="logo-icon">⚡</div>
-                <span>WASM Agent</span>
+                <div class="logo-icon">π</div>
+                <span>PI WASM Agent</span>
             </div>
-            <div style="display:flex;align-items:center;gap:10px">
-                <span class="status-dot loading" id="status"></span>
-                <button onclick="openSettings()" style="background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer">⚙️</button>
+            <div class="status">
+                <span class="status-dot" id="status"></span>
+                <span id="statusText">Loading...</span>
             </div>
         </header>
+        
+        <div class="tools-bar">
+            <button class="tool-btn" onclick="showTool('read')">📄 Read</button>
+            <button class="tool-btn" onclick="showTool('write')">✏️ Write</button>
+            <button class="tool-btn" onclick="showTool('edit')">🔧 Edit</button>
+            <button class="tool-btn" onclick="showTool('bash')">💻 Bash</button>
+            <button class="tool-btn" onclick="showTool('files')">📁 Files</button>
+            <button class="tool-btn" onclick="openSettings()">⚙️</button>
+        </div>
         
         <div class="messages" id="messages">
             <div class="msg system">Loading Python runtime...</div>
         </div>
         
         <div class="input-area">
-            <div class="quick-actions">
-                <button class="quick-btn" onclick="quickPrompt('fibonacci')">📝 Fibonacci</button>
-                <button class="quick-btn" onclick="quickPrompt('sort')">🔢 Sort</button>
-                <button class="quick-btn" onclick="quickPrompt('file')">📁 New File</button>
-                <button class="quick-btn" onclick="quickPrompt('list')">📋 List Files</button>
-            </div>
             <div class="input-container">
                 <div class="input-wrapper">
-                    <textarea id="input" rows="1" placeholder="Ask anything..." onkeydown="handleKey(event)"></textarea>
+                    <textarea id="input" rows="1" placeholder="Message PI Agent..." onkeydown="handleKey(event)"></textarea>
                 </div>
                 <button class="send-btn" id="sendBtn" onclick="send()" disabled>➤</button>
             </div>
@@ -448,8 +354,8 @@
     </div>
     
     <!-- Settings Modal -->
-    <div class="modal-overlay" id="settingsModal" onclick="closeSettings(event)">
-        <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal" id="settingsModal" onclick="closeSettings(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <span class="modal-title">Settings</span>
                 <button class="modal-close" onclick="closeSettings()">✕</button>
@@ -458,9 +364,9 @@
             <div class="setting-group">
                 <div class="setting-label">Provider</div>
                 <div class="provider-btns">
-                    <button class="provider-btn active" id="providerLocal" onclick="setProvider('local')">Local</button>
-                    <button class="provider-btn" id="providerOpenAI" onclick="setProvider('openai')">OpenAI</button>
-                    <button class="provider-btn" id="providerAnthropic" onclick="setProvider('anthropic')">Anthropic</button>
+                    <button class="provider-btn active" id="pLocal" onclick="setProvider('local')">Local</button>
+                    <button class="provider-btn" id="pOpenAI" onclick="setProvider('openai')">OpenAI</button>
+                    <button class="provider-btn" id="pAnthropic" onclick="setProvider('anthropic')">Anthropic</button>
                 </div>
             </div>
             
@@ -471,9 +377,12 @@
             
             <div class="setting-group">
                 <div class="setting-label">Virtual Files</div>
-                <div class="files-panel" id="filesPanel">
-                    <div class="empty-state">No files yet</div>
-                </div>
+                <div id="filesList" style="font-size:12px;color:var(--text-secondary)">No files</div>
+            </div>
+            
+            <div class="setting-group">
+                <div class="setting-label">Session</div>
+                <div id="sessionInfo" style="font-size:12px;color:var(--text-secondary)">New session</div>
             </div>
         </div>
     </div>
@@ -481,103 +390,398 @@
     <script>
         let pyodide = null;
         let provider = 'local';
-        let isProcessing = false;
+        let isThinking = false;
+        let session = { messages: [], tools: [], tokens: 0 };
         
-        const quickPrompts = {
-            fibonacci: 'Write a Python function to calculate fibonacci numbers and show first 10',
-            sort: 'Write a Python function to sort a list and demonstrate it',
-            file: 'Create a file called hello.txt with content "Hello World!"',
-            list: 'List all files in the virtual file system'
-        };
-        
-        // Initialize
+        // Initialize Pyodide and Agent
         async function init() {
+            setStatus('loading', 'Loading Python...');
+            
             try {
                 pyodide = await loadPyodide();
                 await initAgent();
                 
-                document.getElementById('status').className = 'status-dot ready';
+                setStatus('ready', 'Ready');
                 document.getElementById('sendBtn').disabled = false;
                 
                 clearMessages();
-                addMessage('system', 'Ready! I can execute Python code and manage files.');
+                addMessage('system', 'PI WASM Agent ready! I can read/write files, edit code, and run bash commands.');
             } catch (e) {
-                addMessage('system', 'Error: ' + e.message);
+                setStatus('error', 'Error');
+                addMessage('system error', 'Failed to load: ' + e.message);
             }
         }
         
+        // Initialize Agent (PI Agent Loop Pattern)
         async function initAgent() {
-            await pyodide.runPythonAsync(`
+            const agentCode = `
 import json
 import sys
+import os
 from io import StringIO
+from typing import Dict, List, Any, Optional
+from dataclasses import dataclass, field
+from enum import Enum
 
-class FS:
+# ==================== PI Agent Core ====================
+
+class ToolName(Enum):
+    READ = "read"
+    WRITE = "write"
+    EDIT = "edit"
+    BASH = "bash"
+
+@dataclass
+class ToolResult:
+    success: bool
+    output: str
+    error: Optional[str] = None
+
+@dataclass
+class Message:
+    role: str  # user, assistant, tool_result
+    content: str
+    tool_calls: List[Dict] = field(default_factory=list)
+    tool_name: Optional[str] = None
+
+class VirtualFS:
+    """Virtual file system for WASM environment"""
     def __init__(self):
-        self.files = {}
-    def write(self, p, c):
-        self.files[p] = c
-        return f"Wrote {len(c)} chars to {p}"
-    def read(self, p):
-        return self.files.get(p, f"File not found: {p}")
-    def list(self):
-        return list(self.files.keys())
-    def delete(self, p):
-        if p in self.files:
-            del self.files[p]
-            return f"Deleted {p}"
-        return f"Not found: {p}"
-
-fs = FS()
-
-def run_tool(name, args):
-    if name == "write_file":
-        return fs.write(args.get("path",""), args.get("content",""))
-    elif name == "read_file":
-        return fs.read(args.get("path",""))
-    elif name == "list_files":
-        return json.dumps(fs.list())
-    elif name == "run_python":
+        self.files: Dict[str, str] = {}
+        self.cwd = "/"
+    
+    def read(self, path: str) -> ToolResult:
         try:
-            old = sys.stdout
-            sys.stdout = StringIO()
-            exec(args.get("code",""))
-            r = sys.stdout.getvalue()
-            sys.stdout = old
-            return r or "(no output)"
+            if path in self.files:
+                return ToolResult(True, self.files[path])
+            return ToolResult(False, "", f"File not found: {path}")
         except Exception as e:
-            return f"Error: {e}"
-    return f"Unknown: {name}"
+            return ToolResult(False, "", str(e))
+    
+    def write(self, path: str, content: str) -> ToolResult:
+        try:
+            self.files[path] = content
+            return ToolResult(True, f"Wrote {len(content)} chars to {path}")
+        except Exception as e:
+            return ToolResult(False, "", str(e))
+    
+    def edit(self, path: str, old: str, new: str) -> ToolResult:
+        try:
+            if path not in self.files:
+                return ToolResult(False, "", f"File not found: {path}")
+            content = self.files[path]
+            if old not in content:
+                return ToolResult(False, "", f"Pattern not found: {old[:50]}...")
+            self.files[path] = content.replace(old, new)
+            return ToolResult(True, f"Edited {path}")
+        except Exception as e:
+            return ToolResult(False, "", str(e))
+    
+    def list_files(self) -> List[str]:
+        return list(self.files.keys())
+    
+    def delete(self, path: str) -> ToolResult:
+        if path in self.files:
+            del self.files[path]
+            return ToolResult(True, f"Deleted {path}")
+        return ToolResult(False, "", f"Not found: {path}")
+
+class BashEmulator:
+    """Limited bash emulation for WASM"""
+    def __init__(self, fs: VirtualFS):
+        self.fs = fs
+        self.env = {"HOME": "/home/user", "PATH": "/usr/bin"}
+    
+    def run(self, cmd: str) -> ToolResult:
+        try:
+            parts = cmd.strip().split()
+            if not parts:
+                return ToolResult(True, "")
+            
+            # Built-in commands
+            if parts[0] == "ls":
+                files = self.fs.list_files()
+                return ToolResult(True, "\\n".join(files) if files else "(empty)")
+            
+            elif parts[0] == "cat":
+                if len(parts) < 2:
+                    return ToolResult(False, "", "Usage: cat <file>")
+                result = self.fs.read(parts[1])
+                return result
+            
+            elif parts[0] == "echo":
+                return ToolResult(True, " ".join(parts[1:]))
+            
+            elif parts[0] == "pwd":
+                return ToolResult(True, self.fs.cwd)
+            
+            elif parts[0] == "python" or parts[0] == "python3":
+                # Execute Python code
+                if "-c" in parts:
+                    idx = parts.index("-c")
+                    code = " ".join(parts[idx+1:])
+                    old_stdout = sys.stdout
+                    sys.stdout = StringIO()
+                    try:
+                        exec(code)
+                        output = sys.stdout.getvalue()
+                        sys.stdout = old_stdout
+                        return ToolResult(True, output)
+                    except Exception as e:
+                        sys.stdout = old_stdout
+                        return ToolResult(False, "", str(e))
+                return ToolResult(False, "", "Only -c supported")
+            
+            else:
+                return ToolResult(False, "", f"Command not found: {parts[0]}")
+        
+        except Exception as e:
+            return ToolResult(False, "", str(e))
+
+# Global instances
+fs = VirtualFS()
+bash = BashEmulator(fs)
+
+# ==================== Agent Tools ====================
+
+TOOLS = [
+    {
+        "name": "read",
+        "description": "Read file contents",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "File path to read"}
+            },
+            "required": ["path"]
+        }
+    },
+    {
+        "name": "write",
+        "description": "Write content to a file",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "File path"},
+                "content": {"type": "string", "description": "Content to write"}
+            },
+            "required": ["path", "content"]
+        }
+    },
+    {
+        "name": "edit",
+        "description": "Edit a file by replacing text",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "File path"},
+                "old_text": {"type": "string", "description": "Text to replace"},
+                "new_text": {"type": "string", "description": "Replacement text"}
+            },
+            "required": ["path", "old_text", "new_text"]
+        }
+    },
+    {
+        "name": "bash",
+        "description": "Execute bash command",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "Command to execute"}
+            },
+            "required": ["command"]
+        }
+    }
+]
+
+def execute_tool(name: str, args: Dict) -> Dict:
+    """Execute a tool and return result"""
+    result = None
+    
+    if name == "read":
+        r = fs.read(args.get("path", ""))
+        result = {"success": r.success, "output": r.output, "error": r.error}
+    
+    elif name == "write":
+        r = fs.write(args.get("path", ""), args.get("content", ""))
+        result = {"success": r.success, "output": r.output, "error": r.error}
+    
+    elif name == "edit":
+        r = fs.edit(args.get("path", ""), args.get("old_text", ""), args.get("new_text", ""))
+        result = {"success": r.success, "output": r.output, "error": r.error}
+    
+    elif name == "bash":
+        r = bash.run(args.get("command", ""))
+        result = {"success": r.success, "output": r.output, "error": r.error}
+    
+    else:
+        result = {"success": False, "error": f"Unknown tool: {name}"}
+    
+    return result
+
+def get_tools():
+    return TOOLS
 
 def get_files():
+    return fs.list_files()
+
+def get_fs():
     return fs.files
-`);
+`;
+            
+            await pyodide.runPythonAsync(agentCode);
+        }
+        
+        // Execute tool
+        async function executeTool(name, args) {
+            const result = await pyodide.runPythonAsync(
+                `json.dumps(execute_tool("${name}", ${JSON.stringify(args)}))`
+            );
+            return JSON.parse(result);
+        }
+        
+        // Send message
+        async function send() {
+            const input = document.getElementById('input');
+            const text = input.value.trim();
+            if (!text || isThinking) return;
+            
+            input.value = '';
+            input.style.height = 'auto';
+            
+            addMessage('user', text);
+            session.messages.push({ role: 'user', content: text });
+            
+            isThinking = true;
+            setStatus('thinking', 'Thinking...');
+            document.getElementById('sendBtn').disabled = true;
+            
+            try {
+                const response = await processWithAgentLoop(text);
+                addMessage('assistant', response);
+                session.messages.push({ role: 'assistant', content: response });
+            } catch (e) {
+                addMessage('assistant error', 'Error: ' + e.message);
+            }
+            
+            isThinking = false;
+            setStatus('ready', 'Ready');
+            document.getElementById('sendBtn').disabled = false;
+            updateSessionInfo();
+        }
+        
+        // PI Agent Loop (simplified)
+        async function processWithAgentLoop(message) {
+            const lower = message.toLowerCase();
+            
+            // Parse tool commands
+            // Read: read <path>
+            if (lower.startsWith('read ') || lower.startsWith('cat ')) {
+                const path = message.split(/\s+/)[1];
+                const result = await executeTool('read', { path });
+                return formatToolResult('read', { path }, result);
+            }
+            
+            // Write: write <path> <content> or create file
+            if (lower.startsWith('write ') || (lower.includes('create') && lower.includes('file'))) {
+                if (lower.startsWith('write ')) {
+                    const parts = message.match(/write\s+(\S+)\s+(.+)/is);
+                    if (parts) {
+                        const result = await executeTool('write', { path: parts[1], content: parts[2] });
+                        return formatToolResult('write', { path: parts[1] }, result);
+                    }
+                } else {
+                    const pathMatch = message.match(/called?\s+(\S+)/i);
+                    const contentMatch = message.match(/content\s+["'](.+?)["']/i) || message.match(/["'](.+?)["']/);
+                    const path = pathMatch ? pathMatch[1] : 'file.txt';
+                    const content = contentMatch ? contentMatch[1] : '';
+                    const result = await executeTool('write', { path, content });
+                    return formatToolResult('write', { path }, result);
+                }
+            }
+            
+            // Edit: edit <path> <old> <new>
+            if (lower.startsWith('edit ')) {
+                const match = message.match(/edit\s+(\S+)\s+["'](.+?)["']\s+["'](.+?)["']/is);
+                if (match) {
+                    const result = await executeTool('edit', { path: match[1], old_text: match[2], new_text: match[3] });
+                    return formatToolResult('edit', { path: match[1] }, result);
+                }
+                return 'Usage: edit <path> "old text" "new text"';
+            }
+            
+            // Bash: !<command> or bash <command>
+            if (message.startsWith('!') || lower.startsWith('bash ')) {
+                const cmd = message.startsWith('!') ? message.slice(1) : message.slice(5);
+                const result = await executeTool('bash', { command: cmd });
+                return formatToolResult('bash', { command: cmd }, result);
+            }
+            
+            // List files
+            if (lower.includes('list') && lower.includes('file')) {
+                const result = await executeTool('bash', { command: 'ls' });
+                return formatToolResult('bash', { command: 'ls' }, result);
+            }
+            
+            // Python execution
+            const codeMatch = message.match(/```(?:python)?\n?([\s\S]*?)```/);
+            if (codeMatch) {
+                const result = await executeTool('bash', { command: `python -c "${codeMatch[1].replace(/"/g, '\\"')}"` });
+                return formatToolResult('bash', { command: 'python' }, result);
+            }
+            
+            // Default: show help
+            return `**PI WASM Agent** - Browser-based AI coding assistant
+
+**Available Tools:**
+• \`read <path>\` - Read file contents
+• \`write <path> <content>\` - Write to file
+• \`edit <path> "old" "new"\` - Edit file
+• \`!<command>\` or \`bash <cmd>\` - Run command
+• \`ls\` - List files
+
+**Examples:**
+• \`read hello.txt\`
+• \`write test.py print("hello")\`
+• \`!ls\`
+• \`!python -c "print(1+1)"\`
+
+**Features:**
+• Virtual file system
+• Python execution
+• Bash emulation`;
+        }
+        
+        function formatToolResult(tool, args, result) {
+            let output = `<div class="tool-call">`;
+            output += `<div class="tool-header"><span class="tool-name">${tool}</span>`;
+            
+            if (args.path) output += ` → ${args.path}`;
+            if (args.command) output += ` → ${args.command}`;
+            
+            output += `</div>`;
+            output += `<div class="tool-body">`;
+            
+            if (result.success) {
+                output += result.output || '(no output)';
+            } else {
+                output += `<span style="color:var(--red)">Error: ${result.error}</span>`;
+            }
+            
+            output += `</div></div>`;
+            return output;
         }
         
         // UI Functions
-        function addMessage(type, text) {
+        function addMessage(type, content) {
             const div = document.createElement('div');
             div.className = `msg ${type}`;
-            div.innerHTML = formatText(text);
+            div.innerHTML = formatContent(content);
             document.getElementById('messages').appendChild(div);
             scrollToBottom();
         }
         
-        function addTyping() {
-            const div = document.createElement('div');
-            div.className = 'msg assistant typing';
-            div.id = 'typing';
-            div.innerHTML = '<span></span><span></span><span></span>';
-            document.getElementById('messages').appendChild(div);
-            scrollToBottom();
-        }
-        
-        function removeTyping() {
-            const t = document.getElementById('typing');
-            if (t) t.remove();
-        }
-        
-        function formatText(text) {
+        function formatContent(text) {
             return text
                 .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre>$2</pre>')
                 .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -594,130 +798,20 @@ def get_files():
             document.getElementById('messages').innerHTML = '';
         }
         
-        // Send
-        async function send() {
-            const input = document.getElementById('input');
-            const text = input.value.trim();
-            if (!text || isProcessing) return;
-            
-            input.value = '';
-            input.style.height = 'auto';
-            
-            addMessage('user', text);
-            isProcessing = true;
-            document.getElementById('sendBtn').disabled = true;
-            addTyping();
-            
-            try {
-                const response = await processMessage(text);
-                removeTyping();
-                addMessage('assistant', response);
-            } catch (e) {
-                removeTyping();
-                addMessage('assistant', 'Error: ' + e.message);
-            }
-            
-            isProcessing = false;
-            document.getElementById('sendBtn').disabled = false;
-            updateFiles();
+        function setStatus(status, text) {
+            document.getElementById('status').className = 'status-dot ' + status;
+            document.getElementById('statusText').textContent = text;
         }
         
-        async function processMessage(msg) {
-            const lower = msg.toLowerCase();
-            
-            // Python code
-            const codeMatch = msg.match(/```python\n?([\s\S]*?)```/) || msg.match(/```([\s\S]*?)```/);
-            if (codeMatch) {
-                return await runPython(codeMatch[1]);
-            }
-            
-            // File operations
-            if (lower.includes('create') && lower.includes('file')) {
-                const pMatch = msg.match(/called?\s+(\S+)/i) || msg.match(/(\S+\.txt)/i);
-                const path = pMatch ? pMatch[1] : 'file.txt';
-                const cMatch = msg.match(/content\s+["'](.+?)["']/i) || msg.match(/["'](.+?)["']/);
-                const content = cMatch ? cMatch[1] : 'Hello World';
-                return await runTool('write_file', {path, content});
-            }
-            
-            if (lower.includes('list') && lower.includes('file')) {
-                const files = await runTool('list_files', {});
-                return files === '[]' ? 'No files yet' : `Files:\n${files}`;
-            }
-            
-            if (lower.includes('fibonacci')) {
-                return await runPython(`
-def fib(n):
-    if n <= 1: return n
-    return fib(n-1) + fib(n-2)
-
-print("Fibonacci sequence:")
-for i in range(10):
-    print(f"fib({i}) = {fib(i)}")
-`);
-            }
-            
-            if (lower.includes('sort')) {
-                return await runPython(`
-import random
-nums = [random.randint(1, 100) for _ in range(10)]
-print(f"Original: {nums}")
-print(f"Sorted:   {sorted(nums)}")
-`);
-            }
-            
-            // Default
-            return `I'm a browser-based AI agent running Python WASM!
-
-**What I can do:**
-• Execute Python code
-• Create and read files
-• Run calculations
-
-**Try asking:**
-• "Write a Python function to..."
-• "Create a file called..."
-• "List all files"`;
-        }
-        
-        async function runPython(code) {
-            return await pyodide.runPythonAsync(
-                `run_tool("run_python", {"code": ${JSON.stringify(code)}})`
-            );
-        }
-        
-        async function runTool(name, args) {
-            return await pyodide.runPythonAsync(
-                `run_tool("${name}", ${JSON.stringify(args)})`
-            );
-        }
-        
-        async function updateFiles() {
-            const files = await pyodide.runPythonAsync('json.dumps(get_files())');
-            const obj = JSON.parse(files);
-            const panel = document.getElementById('filesPanel');
-            
-            if (Object.keys(obj).length === 0) {
-                panel.innerHTML = '<div class="empty-state">No files yet</div>';
-            } else {
-                panel.innerHTML = Object.entries(obj).map(([path, content]) => `
-                    <div class="file-item">
-                        <span>📄 ${path}</span>
-                        <button class="file-delete" onclick="deleteFile('${path}')">🗑</button>
-                    </div>
-                `).join('');
-            }
-        }
-        
-        async function deleteFile(path) {
-            await runTool('delete', {path});
-            updateFiles();
+        function updateSessionInfo() {
+            document.getElementById('sessionInfo').textContent = 
+                `Messages: ${session.messages.length}`;
         }
         
         // Settings
         function openSettings() {
             document.getElementById('settingsModal').classList.add('active');
-            updateFiles();
+            updateFilesList();
         }
         
         function closeSettings(e) {
@@ -729,12 +823,27 @@ print(f"Sorted:   {sorted(nums)}")
         function setProvider(p) {
             provider = p;
             document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('provider' + p.charAt(0).toUpperCase() + p.slice(1)).classList.add('active');
+            document.getElementById('p' + p.charAt(0).toUpperCase() + p.slice(1)).classList.add('active');
             document.getElementById('apiKeyGroup').style.display = p === 'local' ? 'none' : 'block';
         }
         
-        function quickPrompt(key) {
-            document.getElementById('input').value = quickPrompts[key];
+        async function updateFilesList() {
+            const files = await pyodide.runPythonAsync('json.dumps(get_files())');
+            const obj = JSON.parse(files);
+            document.getElementById('filesList').innerHTML = 
+                Object.keys(obj).length === 0 ? 'No files' : 
+                Object.keys(obj).map(p => `📄 ${p}`).join('<br>');
+        }
+        
+        function showTool(tool) {
+            const prompts = {
+                read: 'read hello.txt',
+                write: 'write hello.txt Hello World!',
+                edit: 'edit hello.txt "Hello" "Hi"',
+                bash: '!ls',
+                files: 'list files'
+            };
+            document.getElementById('input').value = prompts[tool];
         }
         
         function handleKey(e) {
@@ -745,10 +854,9 @@ print(f"Sorted:   {sorted(nums)}")
         }
         
         // Auto-resize textarea
-        const textarea = document.getElementById('input');
-        textarea.addEventListener('input', () => {
-            textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        document.getElementById('input').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
         });
         
         // Init
